@@ -2,7 +2,7 @@
 
 namespace _02SikidomokTerulete
 {
-    public class Triangle : IPlane
+    public class Triangle : Plane
     {
         private int trianglebase;
         private int height;
@@ -11,9 +11,10 @@ namespace _02SikidomokTerulete
         {
             this.trianglebase = trianglebase;
             this.height = height;
+            this.Name = "Háromszög";
         }
 
-        public int Area()
+        public override double Area()
         {
             return (trianglebase * height) / 2;
         }

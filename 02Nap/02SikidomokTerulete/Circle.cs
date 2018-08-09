@@ -2,18 +2,19 @@
 
 namespace _02SikidomokTerulete
 {
-    public class Circle : IPlane
+    public class Circle : Plane
     {
         private int radius;
 
         public Circle(int radius)
         {
             this.radius = radius;
+            this.Name = "Kör";
         }
 
-        public int Area()
+        public override double Area()
         {
-            return (int)(2 * radius * Math.PI);
+            return 2 * radius * Math.PI;
         }
     }
 }

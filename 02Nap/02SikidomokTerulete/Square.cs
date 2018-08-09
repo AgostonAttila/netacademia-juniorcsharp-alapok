@@ -2,16 +2,17 @@
 
 namespace _02SikidomokTerulete
 {
-    public class Square : IPlane
+    public class Square : Plane
     {
         private int side;
 
         public Square(int side)
         {
             this.side = side;
+            this.Name = "Négyzet";
         }
 
-        public int Area()
+        public override double Area()
         {
             return side * side;
         }

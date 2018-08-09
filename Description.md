@@ -441,3 +441,249 @@ Ahhoz, hogy hamísítani lehessen, az ősosztályban a felülírható dolgokat *
 ## 2. Házi feladat
 - "felokosítani" minden Area() függvényt *double* visszadott értékre
 - a területszámítást ne felülettel, hanem ősosztállyal oldjuk meg
+
+A függvényhíváskori implizit típuskonverzió:
+```
+   var coin = new FakeCoin();   DoCollects(coin);
+             +                       +
+             |                       |
+             |                       |
+             v                       v
+
++-----------------------------+------------+
+|                             |            |
+| FakeCoin                    | Coin       |
+|                             |            |
+|                             |            |
+|                             |            |
+|                             |            |
+|                             |            |
+|                             |            |
+|                             |            |
+|                             |            |
+|                             +------------+
+|                             |
+|                             |
+|                             |
+|                             |
+|                             |
+|                             |
+|                             |
++-----------------------------+
+```
+
+Az abstract ősosztállyal megoldott területszámítás a következő módon működik:
+
+```
++----------------------------------+                                                                                              |
+|                                  |                                                                                              |
+| Square                           |                                                                                              |
+|                                  |                                                                                              |
+|  public override double Area();  |  +-------------->                                                                            |
+|                                  |                 |                                                                            |
+|                                  |                 |                                                                            |
+|                                  |                 |                                                                            v
++----------------------------------+                 |
+                                                     |          +----------------------------------+            +-----------------------------+
+                                                     |          |                                  |            |                             |
++----------------------------------+                 |          | abstract class Plane             |            | IPlane                      |
+|                                  |                 |          |                                  |            |                             |
+| Circle                           |                 |          |                                  |            |                             |
+|                                  |                 |          |  public abstract double Area();  |  +------>  |  double Area();             |
+|  public override double Area();  | +-------------> +--------> |                                  |            |                             |
+|                                  |                 |          |                          <--------------------------------+  ^              |
+|                                  |                 |          |                                  |            |              |              |
+|                                  |                 |          |                                  |            |              |              |
++----------------------------------+                 |          |                                  |            |              |              |
+                                                     |          |                                  |            |              |              |
+                                                     |          +----------------------------------+            +-----------------------------+
+                                                     |                                                                         |
++----------------------------------+                 |                                                                         |
+|                                  |                 |                                                                         |
+| Triangle                         |                 +                                                                         |
+|                                  | +-------------->                                                                          +
+|  public override double Area();  |                                                                        planes.Sum(x => x.Area())
+|                                  |
++----------------------------------+
+```
+
+## Feladatok
+- [X] Absztrakt osztály tulajdonságainak tisztázása
+- [X] Mi a különbség az absztrakt osztály (abstract class) és a felület (interface) között?
+
+
+### Absztrakt osztályok tulajdonságai
+- absztrakt függvény csak absztrakt osztályban lehet
+- absztrakt osztálynak lehet nem absztrakt függvényei, tulajdonságai és mezői
+- nem lehet példányosítani, vagyis, csak leszármaztatott osztály ősosztályaként jön létre belőle példány
+
+### Mi a különbség az absztrakt osztály és a felület között?
+- A felület nem tartalmaz implementációt
+- Az absztrakt osztály tartalmazHAT implementációt
+- Amikor leszármaztatunk, csak egy ősosztályunk lehet, viszont több felületünk is.
+
+## Feladatok
+- [ ] Objektumorientált programozás fogalmai
+- [ ] Objektumorientált elmélet
+- [ ] Függvények, függvények paraméterei
+
+### Objektumorientált programozás fogalmai
+- Objektum (osztálypéldány)
+  - azonosítható (indentity)
+  - van állapota (state)
+    - az objektum valamennyi tulajdonságához tartozó értékek halmaza az adott pillanatban
+    - időben változhat
+  - van viselkedése (behaviour)
+    - függyvényekkel implementáljuk
+
+- Osztály
+  - objektum tervrajza, ennek alapján hozza létre a példányokat az alkalmazás
+  - azonos típusú objektumok gyűjtője
+
+### Objektumorientált elmélet fogalmai
+- Elvonatkoztatás (Abstraction)
+- Egységbezárás (Encapsulation)
+- Modularitás (Modularity)
+- Hierarchia (Hierarchy)
+
+### Feladatok
+- Objektumok életciklusa
+  - [X] Létrehozó (Constructor)
+
+```
++---------------------+          +---------------------+       +----------------------+
+|  Third              |          |  Middle             |       |  Base                |
++---------------------+          +---------------------+       +----------------------+
+|                     |          |                     |       |                      |
+|                     | +----->  |                     | +---> |  Name                |
+|                     |          |                     |       |  Email               |
+|                     |          |                     |       |                      |
+|                     |          |                     |       |                      |
++---------------------+          +---------------------+       +----------------------+
+
+```
+
+  - [X] Véglegesítő (Finalizer)
+    - az objektumok életciklusa akkor ér véget, ha már "nincs rájuk szükség"
+    - ez akkor történik, ha nincs már rájuk egyetlen élő hivatkozás sem a kódban
+    - ekkor egy idő után jön a .NET keretrendszer szemétgyűjtője, és törli a memóriából
+    - abban az esetben, ha takarítanivalónk van, ez nem jó megoldás
+    - ilyen esetekre való a véglegesítő függvény
+    - Csak ha abszolút fontos, és teljességgel tudjuk, hogy mit csinálunk, akkor használjunk véglegesítőt
+    - Debug üzemmódban a debugger máshogy kezeli a memóriát, a példakódunk nem fog úgy futni, ahogy szeretnénk
+    - Ezért ezt a példakódot Release konfigurációval futtassuk
+    - és magától nem tudjuk, hogy a szemétgyűjtés mikor fut, így nekünk kell ezt kézzel kikényszeríteni - kizárólag demonstrációs célból.
+- .NET memóriakezelése
+  - [X] Szemétgyűjtő (Garbage Collector, GC)
+
+### Szemétgyűjtő működése
+```
+             Értéktípusok                                Referenciatípusok
+
+
+       +------------------+                     +---------------------------------------+
+       | Verem (STACK)    |                     | Halom (HEAP)                          |
+       +------------------+                     +---------------------------------------+
+       |                  |                     |                                       |
+       |  adat            |                     |                                       |
+       |  adat            |                     |                                       |
+       |  adat            |                     |                                       |
++----> |  adat            |                     |                                       |
+       |  adat            |                     |                                       |
+       |  adat            |                     |                                       |
+       |                  |                     +---------------------------------------+ <---------------+ a HEAP foglalás teteje
+       |                  |                     |hhhhhhhhhhhhhhh|iiiiiiiiiiiiii|jjjjjjjj|
+       |  hivatkozás  +------------------>      |hhhhhhhhhhhhhhh|iiiiiiiiiiiiii|jjjjjjjj|
+       |                  |              |      +---------------------------------------+
+       |  hivatkozás      |              |      |eeeeeeeeeeeeeeeeeeeee|fffffffffff|ggggg|
+       |                  |              |      +---------------------------------------+ 
+       |                  |              v----> |aaaaaaaaaaaaaaaa|bbbbbbb|cccc|ddddddddd|
+       +------------------+                     +---------------------------------------+
+
+```
+
+#### ROOT
+innen indulva keressük meg az élő referenciákat
+
+- hívási verem változói (függvény paraméterek is)
+- lokális változók
+- statikus osztály property-k és mezők
+- finalizer queue
+  azok az élő objektumok, amiknek van finalizer függvényük  
+- f-reachable queue
+  azok a garbage objektumok, amiknek van finalizer függvényük
+
+
+#### Szemétgyűjtő (GC: Garbage Collector)
+A szemétgyűjtés időről időre lefut, és takarít a következő módon:
+
+0. minden adatot megjelöl szemétnek a heap memórián
+1. A ROOT-ból elindulva végig tudunk menni valamennyi hivatkozáson és elérünk minden olyan osztálypéldányt, amire van érvényes és élő referencia. Ezeket megjelöli nem szemétnek.
+2. A maradét a szemét (Garbage) ezt kell kitakarítani
+3. A szemétgyűjtő minden érvényes adatot áthelyez hézagmentesre és frissíti a referenciákat úgy, hogy az adatok új helyére mutassanak
+```
+             Értéktípusok                                Referenciatípusok
+
+
+       +------------------+                     +---------------------------------------+
+       | Verem (STACK)    |                     | Halom (HEAP)                          |
+       +------------------+                     +---------------------------------------+
+       |                  |                     |                                       |
+       |  adat            |                     |                                       |
+       |  adat            |                     |                                       |
+       |  adat            |                     |                                       |
++----> |  adat            |                     |                                       |
+       |  adat            |                     |                                       |
+       |  adat            |                     |                                       |
+       |                  |                     |                                       |
+       |                  |                     +------------------------------+  <------------------+  a HEAP foglalás teteje
+       |  hivatkozás  +------------------>      |hhhhhhhhhhhh|jjjjjjjjjjjjjjjjj|        |
+       |                  |              |      +---------------------------------------+
+       |  hivatkozás      |              |      |eeeeeeeeeeeeee|ggggg|hhhhhhhhhhhhhhhhhh|
+       |                  |              |      +---------------------------------------+
+       |                  |              v----> |aaaaaaaaaaaaaaaa|cccc|ddddddddd|eeeeeee|
+       +------------------+                     +---------------------------------------+
+
+``` 
+
+Ez gyakorlatilag egy szemétgyűjtési ciklus, ami az alkalmazások szempontjából a háttérben, észrevétlenül zajlik.
+
+A korosítás azért van, hogy a szemétgyűjtés hatékonyabb legyen:
+a 0. generációra fut a leggyakrabban a szemétgyújtés
+az 1. ritkábban és legritkábban a 2. generációra fut.
+
+#### Korosítás
+A szemétgyűjtés alkalmával minden objektumnak lesz egy "kora".
+- 0. szint: (gyerek) amire még nem futott a szemétgyűjtés
+- 1. szint: (szülő) amire már egyszer futott a szemétgyűjtés
+- 2. szint: (nagyszülő) amire már kétszer futott a szemétgyűjtés
+
+A halom tetején vannak a legfiatalabbak (0. szint), 
+majd öket követik amire már egyszer futott a szemétgyűjtés (1. szint) 
+végül a halom legalján a legidősebb objektumok vannak (2. szint.)
+
+A véglegesítő függvények a következő bonyodalmakat okozzák:
+
+- 1. lépés (mínusz 1): amikor az objektum példányosodik, ha van van véglegesítő függvénye, akkor bekerül egy mutató erre az objektumra a finalizer queue-ba. 
+     Ezért a szemétgyűjtéskor ezt az objektumot majd nem minősíti szemétnek a GC.
+
+- 2/3. szemétgyűjtéskor a hivatkozást áthelyezi a szemétgyűtő az f-reachable queue-ba, 
+     vagyis jelzi, hogy az objektum már nem és, de a finalizer még nem futott (igy bár "garbage", nem törölhető a heap-ről )
+
+
+- Egy teljesen más folyamatban, egyszer, valamikor, nem meghatározható időpontban az f-reachable queuban lévő hivatkozások végén lévő objektumokra lefut a finalizer függvény, és kikerül az f-reachable queue-ból
+
+- a következő szemétgyűjtéskor (mivel már a root-ból nem elérhető) garbage-nek minősül és törlődik a memóriából.
+
+
+vagyis, 
+- a véglegesítő függvény nem tudjuk, hogy mikor fut
+- legalább két ciklus szemétgyűjtés kell, hogy a memóriából kitakarítódjanak.
+
+
+
+### Házi feladat
+- minden projektet futtatni linuxon
+- Dockert telepíteni és elérni, hogy fusson (docker info működik)
+- az elmélet elmélyítése és annak végiggondolása, hogy ha egy osztály olyan függőséget tartalmaz, amit takarítani kell, akkor mi a jó megoldás?
+ 
