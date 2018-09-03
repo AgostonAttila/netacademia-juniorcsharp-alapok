@@ -680,10 +680,448 @@ vagyis,
 - a véglegesítő függvény nem tudjuk, hogy mikor fut
 - legalább két ciklus szemétgyűjtés kell, hogy a memóriából kitakarítódjanak.
 
-
-
 ### Házi feladat
 - minden projektet futtatni linuxon
 - Dockert telepíteni és elérni, hogy fusson (docker info működik)
 - az elmélet elmélyítése és annak végiggondolása, hogy ha egy osztály olyan függőséget tartalmaz, amit takarítani kell, akkor mi a jó megoldás?
  
+### Feladatok
+- [X] IDisposable minta implementálása
+    - készítünk egy Dispose függvényt, ami a takarítást végzi
+    - és try-finally konstrukcióval gondoskodunk, hogy mindig fusson.
+    - hogy ne kelljen mindig annyit gépelni, használhatjuk a using(...) {...} syntactic sugar-t is.
+    - Implementáljuk a Dispose függvényt, hogy a using tudja használni
+    - meghívjuk a Dispose függvényt a Finalizerből, hogyha elfelejtettünk volna using-ot használni.
+    - gondoskodunk arról is, hogyha a using meghívta már a Dispose-t, akkor ez ne okozzon kivételt a Finalizerből hívva
+    - párban implementáljuk a memória lefoglalását és felszabadítását
+    - Honnan hívjuk a Dispose-t?
+      - ha a using-ból hívjuk a Dispose-t, akkor takarítani kell mindent, 
+      - ha Finalizerből hívjuk a Dispose-t, akkor csak a nem menedzselt memóriát kell takarítani, a menedzseltet a GC intézi
+    - Elérjük, hogy a Finalizer csak a védőháló legyen (B-terv), ha "rendesen" használjuk az osztálypéldányt (pl. using-gal), akkor sosem fut le
+    - A Dispose függvényben nagyon gondosnak kell lennünk: null vizsgálat minden referenciára
+    - Figyelni kell a Dispose futtatásakor a párhuzamos végrehajtásra is, és kizárni a [versenyhelyzetet](https://hu.wikipedia.org/wiki/Versenyhelyzet) ([race condition](https://stackoverflow.com/questions/34510/what-is-a-race-condition)):
+```
+                                                     using (var o = new ItselfCleaner)
+                                            +<-----+ +------------------------------+
+                                            |        |                              |
+                                            |        |                              |
+                  ItselfCleaner             |        |                              |
+                 +------------------------+ |  <---+ |                              |
+                 |                        | |  |   | |                              |
+race condition   |                        | |  |   | |                              |
+                 |                        | |  |   | |                              |
+          +----> |  if (isDisposed)       | |  |   | |                              |
+                 |                        | |  |   | +------------------------------+
+                 |                        | |  |   |
+                 |                        | |  |   |
+                 |                        | |  |   |
+                 |                        | |  |   |
+                 |                        | |  |   |
+                 |                        | |  |   | using (var o = new ItselfCleaner)
+                 |                        | |  |   + +------------------------------+
+                 |                        | |  |     |                              |
+                 |                        | |  |     |                              |
+                 |                        | |  |     |                              |
+                 |                        | |  |     |                              |
+                 |                        | |  |     |                              |
+                 | isDisposed = true;     | |  |     |                              |
+                 |                        | |  |     |                              |
+                 |                        | v  v     |                              |
+                 +------------------------+          +------------------------------+
+ 
+
+```
+    - védeni kell a függvényeket és property-ket az esetleges törölt példány használattól
+      (mivel integer-t használunk az isDispose jelzésre a kiolvasása egy lépésben történik, így nem okoz race conditiont)
+
+- [X] IEnumerable (Bejáró) minta áttekintése
+    - amikor valamiből több van, és ezeket számba kéne venni, fel kéne sorolni, végig kéne rajtuk menni, stb.
+    - megoldások
+      - ```IEnumerable<T>``` típust visszaadó függvény:
+```
+ Állapotgép
++---------------------------------------------------+
+|                                                   |
+|         +------------------------->+              |
+|                                    |              |
+|                                    v              |
+|                             "1 kg marhahús";      |
+|                                                   |
+|                                    +              |
+|                                    |              |
+|                                    |              |
+|                                    v              |
+|                             "só";                 |
+|                                    +              |
+|                                    |              |
+|                                    |              |
+|                                    v              |
+|                             "1 kg burgonya";      |
+|                                    +              |
+|                                    |              |
+|                                    |              |
+|                                    v              |
+|                             "1 kg liszt";         |
+|                                                   |
+|                                                   |
+|                                                   |
+|                                                   |
+|                                                   |
+|                                                   |
++---------------------------------------------------+
+```
+      - IEnumerable típusú osztály használata
+        - hátrány: csak **object** típus képes visszaadni.
+
+
+- [X] Statikus és osztályszintű függvények használata
+
+```
+                                                                   +--------------------+
+class Program                                                      |                    |
++------------------------------+                                 + | InstanceFunction() |
+|                              |                                 | |                    |
+| public static void Main(...) |  <------------------------------+ |                    |
+|                              |                                   +--------------------+
+|                              |
+| static ShoppingList()        | <------------------------------+  +--------------------+
+|                              |                                |  |                    |
+|                              |                                +  | InstanceFunction() |
+|                              |                                   |                    |
+|                              |                                   |                    |
+|                              |                                   +--------------------+
+|                              |
++------------------------------+                                   +--------------------+ <----------+
+                                                                   |                    |            |
+                                                                   | InstanceFunction() | +----------+
+                                                                   |                    |
+                                                                   |                    |
+                                                                   +--------------------+
+
+```
+  - statikusból csak statikus tudok hívni, hívatkozni
+  - példányszintűből példányszintűt és statikust (osztályszintűt) is tudok hívni és hivatkozni
+  - ha egy osztály statikus, akkor csak statikus függvényei, tulajdonságai és mezői lehetnek
+
+- [X] Docker használata dotnet core alkalmazások fejlesztéséhez
+
+```
+
+HOST Operációs rendszer
+
+  Virtuális gép
++--------------------------------------------------+
+|                                                  |
+|                                                  |
+|  Operációs rendszer                              |
+|                                                  |
+|       +                                          |
+|                                                  |
+|  Alkalmazások                                    |
+|                                                  |
+|       + Beállítások                              |
+|                                                  |
++--------------------------------------------------+
+
+
+HOST Operációs rendszer
+--------------------------------------------------------------
+
+ Konténer
+
++--------------------------------------------------+
+|                                                  |
+|  Felületi wrapper az OS felé                     |
+|                                                  |
+|                                                  |
+|  Alkalmazás                                      |
+|                                                  |
+|       + Beállítások                              |
+|                                                  |
+|                                                  |
++--------------------------------------------------+
+```
+
+Docker build összefoglalása:
+
+(Három résztvevő)
+
+```
+                                                      Docker szerver (Linux vagy Windows konténerek kezelésére)
+                                                     +--------------------------------------+
+ Forráskód a windows könyvtárban                     |                                      |
+                                                     |                                      |
+ + Docker CLI                                        |                                      |
+                                                     |      +---------------------------+   |
++--------------------------+                         |      | Build konténer            |   |
+|                          |                         |      | /App                      |   |
+|                          |     BUILD               |      |                           |   |
+|                          |                         |      |  1. .csproj másolás       |   |  COPY (a windows könyvtárból)
+|                          |  +----------------->    |      |  2. nuget restore         |   |
+|                          |                         |      |  3. forráskód másolás     |   |  COPY (a windows könyvtárból)
+|                          |                         |      |  4. dotnet publish        |   |
+|  Dockerfile              |      <-------------+    |      |                           |   |
+|                          |      |                  |      |                           |   |
+|  + Docker CLI            |      |                  |      |                           |   |
+|                          |      |                  |      +---------------------------+   |
+|                          |      |                  |                                      |
+|                          |      |                  |                                      |
+|                          |      |                  |                                      |
+|                          |      |                  |      +---------------------------+   |
+|                          |      |                  |      | Runtime konténer          |   |
+|                          |      |                  |      |  /App                     |   |
+|                          |      |                  |      |                           |   |
+|                          |      |                  |      |  1. Másolás               |   |  COPY (A build konténerből)
+|                          |      |                  |      |                           |   |
+|                          |      |                  |      |  2. Indítási parancs      |   |
+|                          |      v +----------->    |      |                           |   |
+|                          |                         |      |                           |   |
+|                          |                         |      |                           |   |
++--------------------------+                         |      |                           |   |
+                                                     |      |                           |   |
+                                                     |      +---------------------------+   |
+                                                     |                                      |
+                                                     +--------------------------------------+
+```
+
+### Feladatok: 
+- [X] szigorúan típusos bejárható gyűjtemény készítése
+  - egy ilyen bejárásnál legalább négy szereplő van
+    - [X] az adatcsomag, amiből több van (Adat.cs)
+    - [X] ezeket az adatcsomagokat összefogja egy aggregátum, vagy gyűjtő osztály (BejarhatoAdatok.cs).
+    - [X] ez az aggregátum képes TETSZŐLEGES adattípust használni
+      - ehhez az osztályon belül a konkrét típus hivatkozást egy cimkével helyettesítjük
+      - ezt a cimkét átvesszük "kacsacsőrök" között: ```<TAdat>```
+      - majd amikor példányosítunk egyet az ilyen osztályból, konkrét típust adunk a cimkének
+    - [X] ez implementálja a bejárható (IEnumerable) felületet, így egy foreach ciklus végig tud az elemein iterálni
+    - [X] és van egy bejáró osztály (IEnumerator), amiből példányt a bejárható felület GetEnumerator() függvénye szolgáltat
+    - [X] az utóbbi két szereplő lehet közös az előzővel (BejarhatoAdatok.cs)
+
+- [ ] Kivételkezelés
+  - [ ] Működése
+    - [ ] try-catch, try-catch-finally
+    - [ ] dotnet futásidejű kivételek kezelése
+  - [ ] teljesítménye
+
+- [ ] Naplózás
+
+
+### Házi feladat
+- Az ```IEnumerable<T>``` "debuggolása" hasonlóan az IEnumerable vizsgálatához (Console.WriteLine segítségével)
+- Annak a pszeudokódnak a megfejtése, hogy is nézhet ki ez a foreach, ha mi írnánk. (plesz.gabor@netacademia.hu)
+- A dotnet kódban átnézni, hogy is oldották meg a fejlesztők az ```IEnumerable<T>/IEnumerator<T>``` [implementációt](https://referencesource.microsoft.com/#mscorlib/system/collections/generic/list.cs)
+
+
+### Kivételkezelés
+Alapvetően két féle megközelítése van a kivételkezésnek.
+
+A kivétel azt jelenti, hogy olyan helyzetbe kerül az alkalmazás, amire nincsen felkészítve. Erre adott válaszok a következők
+- mindegy, hogy hogy, de valahogy menjen tovább az alkalmazás (TELJESEN TILOS!!!!!!!)
+- minden elvégzendő feladat után valamilyen információt szerzünk, hogy sikeres volt-e vagy nem a végrehajtás (egyik megközelítés).
+  - minden függvény, és a visszaadott érték jelzi, hogy történt-e hiba (például az SQL tárolt eljárásoknál a visszatérési értékben szokták jelezni, hogy lefutott-e =0, vagy valami nem stimmel =1, vagy C függvények hívása)
+  - minden hívás után van egy általános állapotjelző, ami lekérdezhető (pl: ERRORLEVEL, API megközelítés)
+- struktúrált kivételkezelés (másik megközelítés)
+  - az alkalmazásnak van egy algoritmusa, amit normálisan lépésről lépésre végrehajt, és ez a forráskódból szépen látható.
+  - és van egy kivételkezelés, amikor a alkalmazás futásának folyamata megszakad és életbe lép a kivételkezelés folyamat
+  - ilyenkor képződik egy kivétel (Exception) példány
+  - majd a kivételkezelés folyamatában "felbuborékozik" a megfelelő kivételeket kezelő pontra a végrehajtás ezzel az objektumpéldánnyal
+  - ami kezeli a kivételt
+
+
+#### Előnye
+- jól olvasható kódot eredményez
+- könnyebb tervezni
+- nehezebb elrontani
+- "nem a programozó, hanem a környezet kezeli" a kivételt
+
+#### Hátránya
+- több erőforrást igényel
+- a korábbi módon nem áttekinthető a hibakezelés
+- "nem a programozó, hanem a környezet kezeli" a kivételt
+
+
+#### Kivételek "családfája"
+[teljes felsőszintű hierarchia itt megtekinthető](https://docs.microsoft.com/en-us/previous-versions/dotnet/netframework-4.0/z4c5tckx(v=vs.100))
+
+```
+                                                ^----+ In^alidOutOfRangeException
+                                                |
+                                                |
+                                                |
+                                                |
+                                                <----+ NullReferenceException
+                                                |
+                                                |
+                                                |
+                                                |
+                                                <----+ Access^iolationException
+                                                |
+                                                |
+                                                v
+Exception  <-----+-------+  SystemException <---+
+                 ^                              +----+ In^alidOperationException
+                 |                              ^
+                 |                              |
+                 |                              |
+                 |                              |                           +----------------+ ArgumentNullException
+                 |                              |                           |
+                 |                              +----+ ArgumentException <--v----------------+ ArgumentoutOfrangeException
+                 |                              |
+                 |                              |
+                 |                              |                           +---------------+  ComException
+                 |                              +----+ ExternalException <--+
+                 |                                                          |
+                 |                                                          +---------------+  SEHException
+                 |
+                 <--------+  ApplicationException
+
+```
+
+### Feladatok
+#### Kivételkezelés
+- [X] Kivételkezelés egymásba ágyazott végrehajtás esetén
+- [X] Milyen információk állnak rendelkezésre egy mélyebb végrehajtási lánc (stack trace) esetén, és hogyan érdemes ezeket kezelni
+	- a .NET Framework környezetben a **throw** utasítás az aktuális függvényben a kivétel keletkezésének a helyét átírja a saját sorszámára.
+	- a .NET Core környezetben ilyesmi nem történik
+	- kivételkezelés megközelítések
+```
+                //1. elnyeljük a hibát, nincs throw-t
+                //2. "rethrow" továbbdobjuk a kivétel eggyel
+                throw;
+                //3. továbbdobjuk a kapott kivételt
+                throw ex;
+                //4. saját kivételt dobunk
+                throw new ApplicationException("Saját kivétel");
+                //5. saját kivételt dobunk, de becsomagoljuk a kapott kivételt
+                throw new ApplicationException("Saját kivétel", ex);
+				//ilyenkor az ex változóban lévő kivételt a létrehozott új kivétel InnerException mezőjébe beírtuk
+
+```
+    - mivel a .NET Frameworkben a kivétel keletkezési helyét a **throw** a saját sorszámára cseréli, ezért, ha throw-val akarunk továbbmenni, az egyetlen megoldás, ahol nem veszítünk információt az 5. megközelítés
+	- .NET Core-ban nincs ilyen probléma, használhatjuk a 2. megközelítést, de, ha olyan kódot szeretnénk írni, ami minkét környezetben ugyanúgy működik, akkor itt is az 5. megközelítést kell használnunk.
+	- a hívási veremben (stack trace) sorszám az debug információ, így csak akkor áll rendelkezésre, ha 1. debug módban fordítottunk és 2. rendelkezésre áll a pdb állomány.
+- [X] Hogyan használjunk saját kivételeket
+	- Az ApplicationException-ből származtassuk le az alkalmazásunk belső logikája szerint képződő kivételeket
+- [X] Amennyiben csak naplózni szeretnénk a hibákat, akkor mit érdemes tenni?
+	- [Exception Drive Development](https://blog.codinghorror.com/exception-driven-development/)
+- [X] Kivételek teljesítményszükséglete
+#### Naplózás
+- [X] [Log4Net](https://logging.apache.org/log4net/)
+	- Miért kell keretrendszer, miért nem jó amit magunknak összedobunk?
+	  - Azért mert sokkal bonyolultabb témába tenyerelünk, mnt azt egyáltalán képzelnénk
+	    - a lehető legkisebb "overhead"-et tegye hozzá az alkalmazásunkhoz
+		- külön legyen választva a napló bejegyzések létrehozása a konkrét napló kezelésétől (hova kerül a bejegyzés)
+		- legyen a napló **futásidőben** konfigurálható!
+	  - a Log4Net (Log4J) ezek mentén íródott
+	  - további szempontok
+	    - szeretnénk a naplóbejegyzések csoportosítani
+		  - bejegyzés típusa szerint, amit az alkalmazás ad
+		  - bejegyzés helye szerint, ahol a kódban előfordul
+		  - bejegyzés figyelemre méltósága szerint (súlya szerint)
+		- szeretnénk szűrni bejegyzéseket
+- [ ] Serilog
+
+
+### Házi feladatok
+- a .NET FrameWork-ben/.NET Core-ban kipróbálni a következő hibakezelési megoldásokat (különös tekintettel a sorszámok kezelésére):
+  - ```throw ex;``` (3. megközelítés)
+  - ```throw new Exception();``` (4. megközelítés)
+  - ```throw new Exception("saját kivétel", ex);``` (5. megközelítés) 
+  - írjunk olyan kódot, ami az 5. megközelítés esetén, ki tudja olvasni a megfelelő információt.
+  - a kivételkezelő események kipróbálása .NET Framework-ön is
+  - kipróbálni a log4net EventLog és RollingFile appender-t
+  - kipróbálni a log4net AdoNet appender-t
+  - implementálni a kivételek naplózását
+
+
+### Feladatok
+- [ ] Log4Net
+	- kipróbálni a log4net AdoNet appender-t
+		- kivételek kezelésére jó lehet, 
+		- nagy teljesítmény és adatmennyiség igényű (pl. debug napló) naplózásra kifejezetten antipattern!! (Ebben az esetben valami naplózásra kitalált dologra van szükség, pl: [ELK Stack: ElasticSearch+LogStash+Kibana, RabbitMQ])
+```
+                                        Appenderek
+  Alkalmazás
++-------------------------+          +----------------+
+|                         |          |                |
+|                         | +------> | Console        |
+|                         |          |                |
+|                         |          +----------------+
+|                         |
+|                         |          +----------------+
+|                         |          |                |
+|                         | +------> | File           |
+|                         |          |                |
+|                         |          +----------------+
+|                         |
+|                         |                                                       Adatbázis
+|                         |          +----------------+                         +---------------------------+
+|                         |          |                |                         |   Naplótábla              |
+|                         | +------> | AdoNet         |                         |  +--------------------+   |
+|                         |          |                |                         |  |                    |   |
+|                         |          |                | +---------------------> |  |                    |   |
+|                         |          |                |                         |  |                    |   |
+|                         |          |                |                         |  +--------------------+   |
+|                         |          |                |                         |                           |
+|                         |          |                |                         |                           |
++-------------------------+          +----------------+                         +---------------------------+
+```
+
+- [ ] [Serilog](https://serilog.net/)
+	- .NET Core alapokon
+		- a naplózó rendszer kis csomagokra van bontva, így csak azt kell telepíteni, amit tényleg használunk
+		- a serilog **Sink**-nek hívja azt, amit a log4net **Appender**nek, a microsoft debug pedig **Listener**nek.
+		- .NET Core a nuget csomagkezelést a *.csproj-ban oldja meg.
+- [ ] Stratégia minta, Delegate
+	- [ ] [Stratégia minta](https://hu.wikipedia.org/wiki/Strat%C3%A9gia_programtervez%C3%A9si_minta)
+	  - Készítünk egy adattároló osztályt, 
+	  - majd különböző műveleteket végzünk vele.
+	  - szeretném, ha be tudnám zárni az osztályomba az adatok kezelését, 
+	  - DE nem szeretném minden esetben változtatni, ha újabb és újabb algoritmusok merülnek fel
+	  - Megoldás: a művelet végzést szervezzük ki egy külön osztályba (Strategy osztály).
+	  - és hogy több féle stratégiát is tudjunk használni, erről egy felület szóljon, amire az adattároló fel van készítve.
+	  - [Szivárgó Absztrakciók törvénye](http://hungarian.joelonsoftware.com/Articles/LeakyAbstractions.html)
+
+```
++---------------------------------+                                                               |  ProductOfEvenStrategy        |
+|                                 |                  +------------------------------+             +-------------------------------+
+| DataStoreWithStrategy           |                  |                              |             |                               |
+|                                 |                  | IStrategy                    |             |                               |
++---------------------------------+                  |                              |             |    int Process(int[] data)    |
+| Fields                          |                  +------------------------------+             |                               |
+|                                 |                  |                              |             |                               |
+| IStrategy strategy     +-------------------------> |                              |             |                               |
+|                                 |                  |  int Process(int[] data)     |             |                               |
+| int[] data   +-------->         |                  |                              |             |                               |
+|                       |         |                  |                              |             +-------------------------------+
+|                       |         |                  |                              |
+|                       |         |                  +------------------------------+
++---------------------------------+
+| Methods               |         |                                    ^
+|                       |         |                                    |                          +-------------------------------+
+|                       |         |                                    |                          |  SumOfOddStrategy             |
+|                       |         |                                    |                          +-------------------------------+
+|                       |         |                                    |                          |                               |
+| int Process           v--------------->+                             |                          |                               |
+|                                 |      ^                             |                          |    int Process(int[] data)    |
+|   return strategy.Process(data) +------+---->------------------------>                          |                               |
+|                                 |                                                               |                               |
+|                                 |                                                               |                               |
+|                                 |                                                               |                               |
+|                                 |                                                               |                               |
+|                                 |                                                               +-------------------------------+
+|                                 |
+|                                 |
+|                                 |
++---------------------------------+
+```
+
+	- [ ] Delegate
+		- ne csak adatokat lehessen változóba tárolni, hanem függvényeket (method) is 
+
+- [ ] Megfigyelő minta, események
+
+
+### Házi feladat
+-- implementálni a ProductOfEven függvényt és felhasználni mindkét formában (függvény és lambda)
+-- írjátok meg ezt a kódot egyedül 
