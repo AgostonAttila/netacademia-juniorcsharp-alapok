@@ -1125,3 +1125,161 @@ Exception  <-----+-------+  SystemException <---+
 ### Házi feladat
 -- implementálni a ProductOfEven függvényt és felhasználni mindkét formában (függvény és lambda)
 -- írjátok meg ezt a kódot egyedül 
+
+
+### Feladatok
+- [X] Delegate definíció és használat részletesen
+- [X] Action, Func definíció és használat
+- [X] Lambda kifejezések és használatuk
+
+#### Delegate definíció
+
+ Delegate: hasonlóan az adatokat kezelő (tároló) változókhoz
+   szükségünk lehet az algoritmusainkat (függvényeinket) kezelő/tároló változókra
+   
+ Használatához 3 lépés szükséges
+ 1. hasonlóan az adatokat kezelő változókhoz, rögzíteni kell egy típust, majd a változóba csak az adott típusú adat kerülhet.
+    ez a típusdefiníció maga a delegate
+    ez tisztázza 
+    1.a. a függvény visszatérési értékét 
+    1.b. és a szignatúráját, 
+    1.c. valamint a definíciónak ad egy nevet
+    
+ 2. hasonlóan az adatokat kezelő változóhoz, fel kell tölteni "adattal". 
+    2.a. definiálni kell függvény(eke)t
+    2.b. ez(eke)t a definíció(ke)t össze kell rendelni a változóval. ("értékadás")
+    egy kicsit máshogy mondva
+    C# ban a delegate un. Multicast delegate
+    vagyis: a delegate típusú változó egy híváslistát tartalmaz
+ 
+ 3. hasonlóan a változ használatához: szükségem van a benne tároplt értékre
+	a híváslista meghívása
+	ilyenkor a dotnet környezet mindegyik függvényhivatkozást meghívja, ami a hívslistán szerepel
+	garantálja, hogy mindegyik meg lesz hívva, de azt nem, hogy milyen sorrendben.
+
+
+
+```
+1. lépés: típusdefiníció                         2. lépés: változó értékének a megadása          3. lépés: meghívás
+                                                    (híváslista feltöltés)
+                                                                                                       +
++-int (string, int)----+                         +--int-(string,-int)--------+                         |
+|                      |                         |                           |                         |
+|                      |                         | +-----------------------+ |                         |
+|                      |                         | |                       | |    <--------------------+
+|                      |                         | |                       | |                         |
++----------------------+                         | +-----------------------+ |                         |
+                                                 |                           |                         |
+                                                 | +-----------------------+ |                         |
+                                                 | |                       | |    <--------------------+
+                                                 | |                       | |                         |
+                                                 | +-----------------------+ |                         |
+                                                 |                           |                         |
+                                                 | +-----------------------+ |                         |
+                                                   |                       |                           |
+                                                   |                       |      <--------------------+
+                                                   +-----------------------+
+
+                                                    (...)
+
+```
+
+#### Action, Func, Lambda
+a delegate használatához 3 (4) lépésre van szükség, hogy tudnánk ezeket a lépéseket egyszerűbbé/kevesebbé tenni???
+
+### Házi Feladat
+- A 09 delegate példával játszani: több hívást tenni egy listára
+- A múlt csütörtöki alkalom kódját átnézni még egyszer
+- végiggondolni: 
+	- egy olyan program vázát megírni, aminek a betöltése sokáig tart és több lépésből áll, 
+	- biztosítani, hogy a lépések végén a felhasználói felület és a naplózás erről értesül
+
+### Feladatok
+- [ ] Megfigyelő minta megismerése (Observer Pattern)
+	- egy olyan program vázát megírni, aminek a betöltése sokáig tart és több lépésből áll, 
+	- biztosítani, hogy a lépések végén a felhasználói felület és a naplózás erről értesül
+    - A jó objektumorientált program ismérvei: High Cohesion - Low Coupling
+	  - Erős kohézió (kohézió: **osztályon belül** az osztály egyes elemeinek a felelősségi köre mennyire hasonló? 
+	    Minél inkább az, annál nagyobb a kohézió. 
+		[GRASP alapelvek](https://en.wikipedia.org/wiki/GRASP_(object-oriented_design)))
+
+Példa gyenge kohézióra:
+```
+ Űrlapok
++--------------------------+
+|                          |
+|  Bekérik az adatokat     |
+|  Validálják az adatokat  |   +----------------->
+|  Meghatározzák az adatoka|                     |
+|  Jogosultságok kezelése  |                     |
+|  Elmentik az adatokat    |                     |
++--------------------------+                     |                    Adatbázis
+                                                 |                   +------------------------+
+                                                 |                   |                        |
++--------------------------+                     |                   |                        |
+|                          |                     |                   |                        |
+|                          |                     |                   |                        |
+|                          | +-----------------> |                   |                        |
+|                          |                     +---------------->  |                        |
+|                          |                     ^                   |                        |
++--------------------------+                     |                   |                        |
+                                                 |                   |                        |
+                                                 |                   |                        |
++---------------------------+                    |                   +------------------------+
+|                           |                    |
+|                           |                    |
+|                           | +------------------>
+|                           |
+|                           |
++---------------------------+
+```
+
+Példa erős kohéziójú osztályokra:
+```
+ Űrlapok                          Meghatározzák az adatoka
++--------------------------+      +--------------+
+|                          |      | Üzleti logika|
+|  Bekérik az adatokat     | +--> |              |
+|  Validálják az adatokat  |      |              |
+|                          |      +------+-------+
+|                          |             |
+|                          |             v
++--------------------------+      Jogosultságok kezelése              Adatbázis
+                                  +--------------+                   +------------------------+
+                                  |              |                   |                        |
++--------------------------+      | Jogosultság  |                   |                        |
+|                          |      | kezelés      |                   |                        |
+|                          |      |              |                   |                        |
+|                          |      +-------+------+           ^-----> |                        |
+|                          |              v                  |       |                        |
+|                          |      Elmentik az adatokat       |       |                        |
++--------------------------+      +--------------+           |       |                        |
+                                  |Adatbázis     |           |       |                        |
+                                  |kezelés       | +--------->       |                        |
++---------------------------+     |(repository)  |                   +------------------------+
+|                           |     |              |
+|                           |     +--------------+
+|                           |
+|                           |
+|                           |
++---------------------------+
+```
+
+	  - Gyenge csatolás (csatolás: **két osztály közötti** csatolás azt jelenti, 
+	    hogy mennyire valószínű, hogy egyik változtatása esetén a másikon is változtatni kell)
+		Gyenge csatolás: ha az egyik módosul, akkor kizárható, hogy a másikat is módosítanom kell
+		Példa: ha az adatbázis változik, **kizárható**, hogy az űrlapon változtatni kelljen.
+
+	- [X] érjük el, hogy ne a LongRunnigProcess legyen a teljhatalom (Dependency Injection-DI, IMessage)
+	- [X] érjük el, hogy ne kelljen pontosan megmondani, hogy hány megfigyelő van (params argumentumok használata)
+	- [X] érjük el, hogy ne csak a konstruktorban lehessen kijelölni a megfigyelőket, hanem menet közben fel- és leiratkozni is lehessen
+	- [X] érjük el, hogy az értesítés tartalma az ne a függvény szignatúrájában legyen meghatározva, 
+	      - hanem egy DTO segítségével
+		  - ami a hosszan futó folyamat példányát fogja átadni, hogy minden információt a megfigyelő (log, ui, stb.) lekérdezhessen
+		  - de nem szeretnénk erős csatolást létrehozni visszafelé, így létrehozunk egy felületet (indirekció, IMessage)
+		  - mivel ez a felületnév (IMessage) ide kézenfekvőbb, az előzőt átnevezzük (IMessage->INotifiable)
+		
+
+
+- [ ] Hogy lehetne ezt a kérdést megoldani delegate-tel?
+- [ ] Új nyelvi elem: események (Events)
